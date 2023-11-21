@@ -1,0 +1,153 @@
+---
+title: "class05"
+author: "Adithi (PID: A16653979)"
+format: pdf
+editor: visual
+---
+
+## Using GGPLOT
+
+The ggplot2 package needs to be installed as it doesn't not come with R "out of the box"
+
+We use the 'install.packages()' function to do this
+
+To use ggplot, I need to load it up using 'library(ggplot2)'
+
+```{r}
+#install.packages (gglot2)
+library(ggplot2) 
+ggplot()
+
+```
+
+ALL ggplot figures have at least three things:
+
+-   data (the stuff we want to plot)
+
+-   aesthetic mapping (x,y)
+
+-   geoms
+
+    ```{r}
+    ggplot (cars) + aes(x=speed, y=dist) + geom_point()
+    ```
+
+ggplot is not the only graphing system in R. There are lots of others. There is even "base R" graphics.
+
+```{r}
+plot(cars)
+```
+
+### **Creating Scatter Plots**
+
+```{r}
+ggplot(cars) + 
+  aes(x=speed, y=dist) +geom_point() +geom_smooth() +
+  labs(title = "Speed vs. Stopping Distances of Cars", x= "Speed (MPH)", y = "Stopping Distance (ft))", caption = "Dataset: 'cars'")+ theme_bw()
+
+```
+
+**Adding More Plot Aesthetics using aes()**
+
+```{r}
+url <- "https://bioboot.github.io/bimm143_S20/class-material/up_down_expression.txt" 
+genes <- read.delim(url) 
+head(genes)
+```
+
+```{r}
+nrow(genes) 
+colnames(genes) 
+ncol(genes) 
+table(genes$State) 
+round( table(genes$State)/nrow(genes) * 100, 2 )
+```
+
+```{r}
+p <- ggplot (genes) + aes(x= Condition1, y = Condition2, col=State) + geom_point() 
+p + scale_colour_manual( values = c("violet", "lightblue", "lightgreen"))+ 
+  labs(title = "Gene Expression Changes upon Drug Treatment", x= "Control (No Drug)", y= "Drug Treatment")
+```
+
+#### **Going Further**
+
+```{r}
+#install.packages("gapminder") 
+#install.packages ("dplyr")
+library(gapminder) 
+library(dplyr) 
+gapminder_2007 <- gapminder %>% filter(year==2007) 
+ggplot(gapminder_2007)+ aes(x=gdpPercap, y=lifeExp, color=continent, size = pop)+
+  geom_point(alpha=0.5) 
+ggplot(gapminder_2007)+ aes(x=gdpPercap, y=lifeExp, color = pop) +
+geom_point(alpha=0.8) 
+
+```
+
+```{r}
+ggplot(gapminder_2007) + geom_point(aes(x = gdpPercap, y = lifeExp,size = pop),
+alpha=0.5) + scale_size_area(max_size = 10)
+```
+
+```{r}
+gapminder_1957 <- gapminder %>% filter(year==1957) 
+ggplot(gapminder_1957)+ 
+aes(x=gdpPercap, y=lifeExp, color =continent, size =pop) +geom_point(alpha=0.7) + scale_size_area(max_size =15)
+```
+
+```{r}
+gapminder_1957 <- gapminder %>% filter(year==2007| year == 1957) 
+ggplot(gapminder_1957)+ 
+aes(x=gdpPercap, y=lifeExp, color =continent, size =pop) +geom_point(alpha=0.7)+ scale_size_area(max_size =15) +facet_wrap(~year)
+```
+
+##### Bar Charts
+
+```{r}
+gapminder_top5 <- gapminder %>% 
+  filter(year==2007) %>% 
+  arrange(desc(pop)) %>% 
+  top_n(5, pop)
+
+gapminder_top5
+```
+
+```{r}
+ggplot(gapminder_top5)+ aes(x= country, y=pop) + geom_col() 
+ggplot(gapminder_top5)+ aes(x= country, y=lifeExp) + geom_col()
+```
+
+```{r}
+ggplot(gapminder_top5)+ aes(x= country, y=pop, fill = continent) + geom_col()  
+ggplot(gapminder_top5)+ aes(x= country, y=pop, fill = lifeExp) + geom_col() 
+```
+
+```{r}
+ggplot(gapminder_top5)+ 
+aes(x= reorder(country, -pop), y=pop, fill = gdpPercap)+ geom_col()  
+ggplot(gapminder_top5)+ 
+  aes(x= reorder(country, -pop), y=pop, fill = country) +
+geom_col(col = "gray30")  +guides(fill = "none")
+
+```
+
+```{r}
+head(USArrests) 
+USArrests$State <- rownames(USArrests) 
+ggplot(USArrests) +aes(x=reorder(State,Murder), y=Murder) +geom_point() +
+geom_segment(aes(x=State, xend=State, y=0, yend=Murder), color="violet")+
+coord_flip()
+```
+
+##### Combining Plots
+
+```{r}
+# install.packages ("patchwork")
+library(patchwork) 
+p1 <-  ggplot(gapminder_top5)+ 
+  aes(x= reorder(country, -pop), y=pop, fill = gdpPercap) + geom_col()   
+
+p2 <- ggplot(gapminder_top5)+ aes(x= reorder(country, -pop), y=pop, fill = country) + geom_col(col = "gray30")  + guides(fill = "none")
+
+(p1 |p2)
+```

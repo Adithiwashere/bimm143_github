@@ -1,0 +1,333 @@
+---
+title: "Structural Bioinformatics"
+author: "Adithi Kumar"
+format: html
+editor: visual
+---
+
+
+# Introduction to the RCSB Protein Data Bank (PDB)
+
+First, let's see what is in the PDB database, the main repository of protein structures.
+
+Downloaded composition stats from: "<https://www.rcsb.org/stats/summary>"
+
+For context:
+
+```         
+Release 2023_04 of 13-Sep-2023 of UniProtKB/TrEMBL contains 251600768 sequence entries
+```
+
+The PDB only contains 183,201. (Structure determination takes a very long time and is very expensive) Sequencing is a lot easier and inexpensive.
+
+
+```{r}
+stats <- read.csv("https://tinyurl.com/statspdb",row.names=1)
+stats
+
+```
+
+
+We need to get rid of commas in the numbers because R is treating this dataframe as a characters instead of numericals.
+
+
+```{r}
+x <- stats$X.ray 
+x
+```
+
+```{r}
+#gsub will (globally) substitute the commas with nothing on the column from x 
+# as.numeric will then convert x into a numeric 
+as.numeric(gsub(",", "", x))
+
+```
+
+```{r}
+rm.comma <- function(x) {
+  as.numeric(gsub(",", "", x))
+}
+```
+
+```{r}
+rm.comma(stats$EM)
+```
+
+
+I can use 'apply()' to fix the whole table...
+
+
+```{r}
+# apply(df, row(1) or column(2), function to apply)
+pbdstats <- apply(stats,2, rm.comma)  
+rownames(pbdstats) <- rownames(stats)
+head(pbdstats)
+```
+
+
+## Q1: What percentage of structures in the PDB are solved by X-Ray and Electron Microscopy.
+
+
+```{r}
+#long way to answer
+(sum(pbdstats[,1])+sum(pbdstats[,2]))/(sum(pbdstats[,"Total"])) 
+
+#OR make a function with all column totals
+totals <- apply(pbdstats, 2, sum) 
+round(totals/totals["Total"]*100,2)
+
+84.83 +8.33
+```
+
+
+93.16% of the structures in the PDB are solved by X-Ray and Electron Microcopy
+
+## Q2: What proportion of structures in the PDB are protein?
+
+
+```{r}
+ptn_total <- pbdstats[1, "Total"] 
+
+ptn_total/sum(pbdstats[, "Total"])
+
+```
+
+
+86.67% of the structures in the PDB are protein.
+
+## Q3: Type HIV in the PDB website search box on the home page and determine how many HIV-1 protease structures are in the current PDB?
+
+Skipped for time!
+
+# Visualizing the HIV-1 protease structure
+
+## **Q4**: Water molecules normally have 3 atoms. Why do we see just one atom per water molecule in this structure?
+
+This is a 2 angstrom structure.Hydrogen is smaller than the resolution of the program so it can't be seen in the structure.
+
+## **Q5**: There is a critical "conserved" water molecule in the binding site. Can you identify this water molecule? What residue number does this water molecule have
+
+HOH 308; the water molecule is hydrogen bonded to the protein and the ligand; it stabilizes the binding between the two.
+
+## **Q6**: Generate and save a figure clearly showing the two distinct chains of HIV-protease along with the ligand. You might also consider showing the catalytic residues ASP 25 in each chain and the critical water (we recommend *"Ball & Stick"* for these side-chains). Add this figure to your Quarto document.
+
+Here is a lovely figure of HIP-Pr with the catalytic ASP residues, the MK1 compound and the all important water 308.
+
+![](1HSG.png)
+
+# Introduction to Bio3D in R
+
+The bio3d package for structural bioinformatics
+
+
+```{r}
+library(bio3d)
+pdb <- read.pdb("1hsg") 
+pdb
+```
+
+
+## **Q7:** How many amino acid residues are there in this pdb object?
+
+There are 198 amino acid residues in this PDB object
+
+## **Q8:** Name one of the two non-protein residues?
+
+HOH and MK1 (the drug/ligand)
+
+## **Q9:** How many protein chains are in this structure?
+
+There are 2 protein chains in this structure.
+
+
+```{r}
+attributes(pdb)
+```
+
+```{r}
+head(pdb$atom)
+```
+
+
+Look at Adenylate Kinase!
+
+Let's finish today with a bioinformatics calculation to predict the functional motions of a PDB structure.
+
+
+```{r}
+adk <- read.pdb("6s36") 
+adk
+```
+
+
+Normal Mode Analysis is used predict protein flexibility and possible conformational changes in structural bioinformatics.
+
+
+```{r}
+#Perform a NMA for adk 
+m <- nma (adk) 
+plot(m)
+```
+
+```{r}
+# look at a "movie" of those possible motions by load the resulting "adk_m7.pdb" into Mol with Open Files
+mktrj(m, file="adk_m7.pdb")
+```
+
+
+# Comparative Structure Analysis of Adenylate Kinase 
+
+
+```{r}
+# Install packages in the R console NOT your Rmd/Quarto file
+
+#install.packages("bio3d")
+#install.packages("devtools")
+#install.packages("BiocManager")
+
+#BiocManager::install("msa")
+#devtools::install_bitbucket("Grantlab/bio3d-view")
+```
+
+
+'Install.packages()' is used to install packages from the CRAN repository for R packages; BioConducter is a separate repository of R; these packages can be accessed using 'BiocManager::install()'. R packages on GitHub or BitBucket can be installed using 'devtools::install_github()' or 'devtools::install_bitbucket()'
+
+The 'msa' package is from BioConductor. These packages focus on genomics type work and are managed by the 'BiocManager' package.
+
+## **Q10.** Which of the packages above is found only on BioConductor and not CRAN?  
+
+msa
+
+## **Q11.** Which of the above packages is not found on BioConductor or CRAN?:  
+
+bio3d-view
+
+## Q12. True or False? Functions from the devtools package can be used to install packages from GitHub and BitBucket? 
+
+TRUE
+
+
+```{r}
+library(bio3d) 
+#fetch query sequence for chain A of the PDB ID 1AKE
+aa <- get.seq("1ake_A") 
+aa
+```
+
+
+## **Q13.** How many amino acids are in this sequence, i.e. how long is this sequence?
+
+There are 214 amino acids in this sequence.
+
+Now I can search the PDB database for related sequences:
+
+
+```{r}
+# Blast or hmmer search to find similar sequences and structures in the PDB 
+
+b <- blast.pdb(aa)
+```
+
+```{r}
+#visualize the blast results 
+hits <- plot(b)
+```
+
+```{r}
+attributes(b) 
+head(b$hit.tbl)
+```
+
+```{r}
+hits$pdb.id
+```
+
+
+'pdb.id' tells us the ID of each of the related structures. Let's annotate these structures (in other words find out what they are. what species they are from, stuff about the experiment they were solved in, etc.)
+
+For this, we can use the 'pdb.annotate()'
+
+
+```{r}
+#anno short for annotate
+anno <- pdb.annotate(hits$pdb.id) 
+
+```
+
+```{r}
+#attributes(anno) 
+head(anno)
+```
+
+
+We can use 'get.pdb()' to retrieve the structures that were related to our query sequence. We can download these structures for further analysis.
+
+
+```{r}
+# Download releated PDB files 
+#extra arguments help download faster, gzip makes file size smaller, path create folders in current working directory call pdbs
+files <- get.pdb(hits$pdb.id, path="pdbs", split=TRUE, gzip=TRUE)
+
+```
+
+
+You can use molstar to visualize all of the structures in the pdbs file
+
+# Align and Superpose Structures  
+
+Now we have all these related structures...
+
+
+```{r}
+# Align the related PDBs 
+pdbs <- pdbaln(files, fit = TRUE, exefile = 'msa') 
+pdbs
+```
+
+
+# Principal Component Analysis
+
+
+```{r}
+# perform PCA  
+pc.xray <- pca(pdbs) 
+plot(pc.xray)
+```
+
+```{r}
+# Visualize first principal component
+pc1 <- mktrj(pc.xray, pc=1, file="pc_1.pdb")
+```
+
+
+# Lab 11 
+
+\[\](HIVPR_MONOMER.png)
+
+\![\]"HIVPR_MONOMER.png"
+
+
+```{r}
+results_dir <- "hivpr_dimer_23119/"
+```
+
+```{r}
+# File names for all PDB models
+pdb_files <- list.files(path=results_dir,
+                        pattern="*.pdb",
+                        full.names = TRUE)
+pdb_files
+```
+
+```{r}
+# Optionally install the MSA package for use with pdbaln()
+#install.packages("BiocManager")
+#BiocManager::install("msa")
+
+pdbs <- pdbaln(pdb_files, fit=TRUE, exefile="msa")
+```
+
+```{r}
+pdbs
+```
+
